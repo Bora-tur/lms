@@ -2,7 +2,7 @@ import sqlite3
 
 from flask import Blueprint, current_app, jsonify, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
-
+from services.desk_service import release_user_desk
 from database import get_connection
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
@@ -83,10 +83,19 @@ def login():
 
 
 @auth_bp.post("/logout")
+@auth_bp.post("/logout")
 def logout():
+    user_id = session.get("user_id")
+
+    if user_id is not None:
+        release_user_desk(
+            current_app.config["DATABASE_PATH"],
+            user_id,
+        )
+
     session.clear()
 
-    return jsonify({"message": "Logged out"})
+    return jsonify({"message": "Logged out successfully"}), 200
 
 
 @auth_bp.get("/me")

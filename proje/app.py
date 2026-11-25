@@ -3,19 +3,26 @@ from flask import Flask, jsonify
 from config import Config
 from database import init_db
 from routes.auth import auth_bp
+from routes.desks import desks_bp
 
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # Initialize the local database.
     init_db(app.config["DATABASE_PATH"])
+
     app.register_blueprint(auth_bp)
+    app.register_blueprint(desks_bp)
 
     @app.get("/health")
     def health():
-        return jsonify({"status": "ok", "service": "lms-local"})
+        return jsonify(
+            {
+                "status": "ok",
+                "service": "lms-local",
+            }
+        )
 
     return app
 
