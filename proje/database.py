@@ -24,6 +24,8 @@ def init_db(database_path):
                 username TEXT NOT NULL UNIQUE,
                 email TEXT NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'student'
+                    CHECK (role IN ('student', 'admin')),
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
 
@@ -97,6 +99,7 @@ def init_db(database_path):
                 ON desk_sessions(desk_id)
                 WHERE released_at IS NULL;
         """)
+        migrate_users(connection)
         migrate_desk_sessions(connection)
         connection.commit()
     finally:
@@ -114,3 +117,20 @@ def migrate_desk_sessions(connection):
 
     if "break_expires_at" not in columns:
         connection.execute("ALTER TABLE desk_sessions ADD COLUMN break_expires_at TEXT")
+
+
+
+def migrate_users(connection):
+    columns = {
+        row["name"]
+        for row in connection.execute("PRAGMA table_info(users)").fetchall()
+    }
+
+    if "role" not in columns:
+        connection.execute(
+            """
+            ALTER TABLE users
+            ADD COLUMN role TEXT NOT NULL DEFAULT 'student'
+            CHECK (role IN ('student', 'admin'))
+            """
+        )

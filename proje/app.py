@@ -4,6 +4,8 @@ from config import Config
 from database import init_db
 from routes.auth import auth_bp
 from routes.desks import desks_bp
+from routes.admin import admin_bp
+from routes.gate import gate_bp
 
 
 def create_app():
@@ -14,6 +16,8 @@ def create_app():
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(desks_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(gate_bp)
 
     @app.get("/health")
     def health():

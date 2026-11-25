@@ -2,8 +2,9 @@ import sqlite3
 
 from flask import Blueprint, current_app, jsonify, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
-from services.desk_service import release_user_desk
+
 from database import get_connection
+from services.desk_service import release_user_desk
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -17,10 +18,14 @@ def register():
     password = data.get("password", "")
 
     if not username or not email or not password:
-        return jsonify({"error": "username, email and password are required"}), 400
+        return jsonify({
+            "error": "username, email and password are required"
+        }), 400
 
     if len(password) < 8:
-        return jsonify({"error": "Password must be at least 8 characters"}), 400
+        return jsonify({
+            "error": "Password must be at least 8 characters"
+        }), 400
 
     password_hash = generate_password_hash(password)
     connection = get_connection(current_app.config["DATABASE_PATH"])
@@ -35,10 +40,16 @@ def register():
         )
         connection.commit()
 
-        return jsonify({"message": "User registered", "user_id": cursor.lastrowid}), 201
+        return jsonify({
+            "message": "User registered",
+            "user_id": cursor.lastrowid,
+            "role": "student"
+        }), 201
 
     except sqlite3.IntegrityError:
-        return jsonify({"error": "Username or email already exists"}), 409
+        return jsonify({
+            "error": "Username or email already exists"
+        }), 409
 
     finally:
         connection.close()
@@ -52,14 +63,16 @@ def login():
     password = data.get("password", "")
 
     if not username or not password:
-        return jsonify({"error": "username and password are required"}), 400
+        return jsonify({
+            "error": "username and password are required"
+        }), 400
 
     connection = get_connection(current_app.config["DATABASE_PATH"])
 
     try:
         user = connection.execute(
             """
-            SELECT id, username, password_hash
+            SELECT id, username, password_hash, role
             FROM users
             WHERE username = ?
             """,
@@ -68,21 +81,26 @@ def login():
     finally:
         connection.close()
 
-    if user is None or not check_password_hash(user["password_hash"], password):
-        return jsonify({"error": "Invalid username or password"}), 401
+    if user is None or not check_password_hash(
+        user["password_hash"], password
+    ):
+        return jsonify({
+            "error": "Invalid username or password"
+        }), 401
 
     session.clear()
     session["user_id"] = user["id"]
 
-    return jsonify(
-        {
-            "message": "Login successful",
-            "user": {"id": user["id"], "username": user["username"]},
+    return jsonify({
+        "message": "Login successful",
+        "user": {
+            "id": user["id"],
+            "username": user["username"],
+            "role": user["role"]
         }
-    )
+    }), 200
 
 
-@auth_bp.post("/logout")
 @auth_bp.post("/logout")
 def logout():
     user_id = session.get("user_id")
@@ -95,7 +113,9 @@ def logout():
 
     session.clear()
 
-    return jsonify({"message": "Logged out successfully"}), 200
+    return jsonify({
+        "message": "Logged out successfully"
+    }), 200
 
 
 @auth_bp.get("/me")
@@ -103,27 +123,35 @@ def me():
     user_id = session.get("user_id")
 
     if user_id is None:
-        return jsonify({"error": "Authentication required"}), 401
+        return jsonify({
+            "error": "Authentication required"
+        }), 401
 
     connection = get_connection(current_app.config["DATABASE_PATH"])
 
     try:
         user = connection.execute(
-            "SELECT id, username, email FROM users WHERE id = ?", (user_id,)
+            """
+            SELECT id, username, email, role
+            FROM users
+            WHERE id = ?
+            """,
+            (user_id,)
         ).fetchone()
     finally:
         connection.close()
 
     if user is None:
         session.clear()
-        return jsonify({"error": "User not found"}), 401
+        return jsonify({
+            "error": "User not found"
+        }), 401
 
-    return jsonify(
-        {
-            "user": {
-                "id": user["id"],
-                "username": user["username"],
-                "email": user["email"],
-            }
+    return jsonify({
+        "user": {
+            "id": user["id"],
+            "username": user["username"],
+            "email": user["email"],
+            "role": user["role"]
         }
-    )
+    }), 200
