@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 
 from config import Config
 from database import init_db
@@ -19,14 +19,16 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(gate_bp)
 
+    @app.get("/")
+    def home():
+        return render_template("index.html")
+
     @app.get("/health")
     def health():
-        return jsonify(
-            {
-                "status": "ok",
-                "service": "lms-local",
-            }
-        )
+        return jsonify({
+            "status": "ok",
+            "service": "lms-local",
+        })
 
     return app
 
@@ -35,4 +37,13 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    from services.break_scheduler import start_break_scheduler
+
+    start_break_scheduler(app.config["DATABASE_PATH"])
+
+    app.run(
+        host="127.0.0.1",
+        port=5000,
+        debug=True,
+        use_reloader=False,
+    )

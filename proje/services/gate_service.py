@@ -95,7 +95,8 @@ def process_exit(database_path, user_id):
                 break_started_at = NULL,
                 break_expires_at = NULL
             WHERE user_id = ?
-              AND released_at IS NULL
+                AND released_at IS NULL
+                AND break_expires_at IS NULL
             """,
             (user_id,),
         )
